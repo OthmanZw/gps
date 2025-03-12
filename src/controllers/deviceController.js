@@ -15,7 +15,7 @@ exports.createDevice = async (req, res) => {
         const device = new Device({
             name,
             deviceId,
-            user: req.user._id // L'ID de l'utilisateur connecté
+            user: req.user.userId // L'ID de l'utilisateur connecté
         });
 
         await device.save();
@@ -32,7 +32,7 @@ exports.createDevice = async (req, res) => {
 // Obtenir tous les appareils de l'utilisateur
 exports.getDevices = async (req, res) => {
     try {
-        const devices = await Device.find({ user: req.user._id });
+        const devices = await Device.find({ user: req.user.userId });
         res.json(devices);
     } catch (error) {
         console.error('Get devices error:', error);
@@ -45,7 +45,7 @@ exports.getDevice = async (req, res) => {
     try {
         const device = await Device.findOne({
             deviceId: req.params.id,
-            user: req.user._id
+            user: req.user.userId
         });
 
         if (!device) {
@@ -66,7 +66,7 @@ exports.updateDevice = async (req, res) => {
         const device = await Device.findOneAndUpdate(
             {
                 deviceId: req.params.id,
-                user: req.user._id
+                user: req.user.userId
             },
             updates,
             { new: true, runValidators: true }
@@ -91,7 +91,7 @@ exports.deleteDevice = async (req, res) => {
     try {
         const device = await Device.findOneAndDelete({
             deviceId: req.params.id,
-            user: req.user._id
+            user: req.user.userId
         });
 
         if (!device) {
@@ -113,7 +113,7 @@ exports.updateLocation = async (req, res) => {
         const device = await Device.findOneAndUpdate(
             {
                 deviceId: req.params.id,
-                user: req.user._id
+                user: req.user.userId
             },
             {
                 'lastLocation.coordinates': [longitude, latitude],

@@ -27,7 +27,7 @@ import {
   SignalCellularOff as NoSignalIcon
 } from '@mui/icons-material';
 import axios from 'axios';
-import NavBar from './NavBar';
+import NavBar from '../components/NavBar';
 
 const Dashboard = () => {
   const [devices, setDevices] = useState([]);
@@ -151,7 +151,7 @@ const Dashboard = () => {
                       {device.name}
                     </Typography>
                     <Chip
-                      label={device.status || 'inactive'}
+                      label={device.status}
                       color={getStatusColor(device.status)}
                       size="small"
                     />
@@ -159,20 +159,15 @@ const Dashboard = () => {
                   <Typography color="textSecondary" gutterBottom>
                     ID: {device.deviceId}
                   </Typography>
-                  {device.description && (
-                    <Typography color="textSecondary" sx={{ mb: 2 }}>
-                      {device.description}
-                    </Typography>
-                  )}
                   <Divider sx={{ my: 1.5 }} />
                   <Box sx={{ display: 'flex', alignItems: 'center', mt: 2 }}>
                     {device.batteryLevel > 20 ? (
-                      <BatteryHighIcon color={getBatteryColor(device.batteryLevel || 0)} />
+                      <BatteryHighIcon color={getBatteryColor(device.batteryLevel)} />
                     ) : (
                       <BatteryLowIcon color="error" />
                     )}
                     <Typography sx={{ ml: 1 }}>
-                      {device.batteryLevel || 0}%
+                      {device.batteryLevel}%
                     </Typography>
                     {device.status === 'active' ? (
                       <SignalIcon color="success" sx={{ ml: 2 }} />

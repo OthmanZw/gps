@@ -5,6 +5,7 @@ const cors = require('cors');
 const authRoutes = require('./routes/auth');
 const deviceRoutes = require('./routes/devices');
 const locationRoutes = require('./routes/locations');
+const alertRoutes = require('./routes/alerts');
 // const notificationRoutes = require('./routes/notificationRoutes');
 
 const app = express();
@@ -17,6 +18,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/devices', deviceRoutes);
 app.use('/api/locations', locationRoutes);
+app.use('/api/alerts', alertRoutes);
 // app.use('/api/notifications', notificationRoutes);
 
 // MongoDB Connection
