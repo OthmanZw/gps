@@ -36,6 +36,8 @@ exports.recordLocation = async (req, res) => {
         device.lastLocation = {
             latitude,
             longitude,
+            speed,
+            heading,
             timestamp: new Date()
         };
         device.batteryLevel = batteryLevel;
@@ -58,7 +60,9 @@ exports.recordLocation = async (req, res) => {
 exports.getLocationHistory = async (req, res) => {
     try {
         const { deviceId } = req.params;
-        const { start, end, limit = 100 } = req.query;
+        const { start, end } = req.query;
+
+        console.log('Fetching history for device:', deviceId);
 
         // Vérifier que l'appareil appartient à l'utilisateur
         const device = await Device.findOne({
@@ -67,8 +71,11 @@ exports.getLocationHistory = async (req, res) => {
         });
 
         if (!device) {
+            console.log('Device not found:', deviceId);
             return res.status(404).json({ message: 'Device not found' });
         }
+
+        console.log('Found device:', device._id);
 
         // Construire la requête
         const query = { device: device._id };
@@ -78,25 +85,24 @@ exports.getLocationHistory = async (req, res) => {
             if (end) query.timestamp.$lte = new Date(end);
         }
 
+        console.log('Query:', JSON.stringify(query));
+
+        // Récupérer toutes les positions triées par timestamp
         const locations = await Location.find(query)
-            .sort({ timestamp: -1 })
-            .limit(parseInt(limit))
+            .sort({ timestamp: -1 }) // Du plus récent au plus ancien
             .select('latitude longitude timestamp speed altitude heading accuracy batteryLevel')
             .lean();
 
-        // Transformer les données pour le frontend
-        const formattedLocations = locations.map(loc => ({
+        console.log('Found locations:', locations.length);
+        console.log('First location:', locations[0]);
+        console.log('Last location:', locations[locations.length - 1]);
+        console.log('All locations:', locations.map(loc => ({
             latitude: loc.latitude,
             longitude: loc.longitude,
-            timestamp: loc.timestamp,
-            speed: loc.speed,
-            altitude: loc.altitude,
-            heading: loc.heading,
-            accuracy: loc.accuracy,
-            batteryLevel: loc.batteryLevel
-        }));
+            timestamp: loc.timestamp
+        })));
 
-        res.json(formattedLocations);
+        res.json(locations);
     } catch (error) {
         console.error('Get location history error:', error);
         res.status(500).json({ message: 'Error fetching location history' });

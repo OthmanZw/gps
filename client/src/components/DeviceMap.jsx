@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Container, Typography, Button, Alert, CircularProgress } from '@mui/material';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import axios from 'axios';
 import 'leaflet/dist/leaflet.css';
@@ -47,7 +47,22 @@ const DeviceMap = () => {
         });
         
         if (locationsResponse.data && locationsResponse.data.length > 0) {
-          setLocations(locationsResponse.data);
+          console.log('Received locations:', locationsResponse.data.length);
+          console.log('First location:', locationsResponse.data[0]);
+          console.log('Last location:', locationsResponse.data[locationsResponse.data.length - 1]);
+          
+          // Trier les positions par timestamp (du plus ancien au plus récent)
+          const sortedLocations = [...locationsResponse.data].sort((a, b) => 
+            new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+          );
+          
+          console.log('Sorted locations:', sortedLocations.map(loc => ({
+            latitude: loc.latitude,
+            longitude: loc.longitude,
+            timestamp: loc.timestamp
+          })));
+          
+          setLocations(sortedLocations);
         } else {
           setError('Aucune position disponible pour cet appareil');
         }
@@ -72,42 +87,45 @@ const DeviceMap = () => {
       <>
         <NavBar />
         <Container>
-          <Box sx={{ mt: 4, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <Button variant="outlined" onClick={() => navigate('/dashboard')} sx={{ mb: 2, alignSelf: 'flex-start' }}>
-              Retour au tableau de bord
-            </Button>
-            <CircularProgress sx={{ mt: 4 }} />
-            <Typography sx={{ mt: 2 }}>Chargement des données...</Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+            <CircularProgress />
           </Box>
         </Container>
       </>
     );
   }
 
-  if (error || !device || locations.length === 0) {
+  if (error) {
     return (
       <>
         <NavBar />
         <Container>
           <Box sx={{ mt: 4 }}>
-            <Button variant="outlined" onClick={() => navigate('/dashboard')} sx={{ mb: 2 }}>
-              Retour au tableau de bord
-            </Button>
-            <Alert severity={error ? "error" : "info"} sx={{ mt: 2 }}>
-              {error || 'Aucune position enregistrée pour cet appareil'}
-            </Alert>
-            {device && (
-              <Typography variant="h6" sx={{ mt: 2 }}>
-                Appareil : {device.name}
-              </Typography>
-            )}
+            <Alert severity="error">{error}</Alert>
           </Box>
         </Container>
       </>
     );
   }
 
+  if (!device || locations.length === 0) {
+    return (
+      <>
+        <NavBar />
+        <Container>
+          <Box sx={{ mt: 4 }}>
+            <Alert severity="info">Aucune donnée disponible</Alert>
+          </Box>
+        </Container>
+      </>
+    );
+  }
+
+  // Calculer le centre de la carte (première position)
   const center = [locations[0].latitude, locations[0].longitude];
+
+  // Préparer les positions pour la polyline
+  const polylinePositions = locations.map(loc => [loc.latitude, loc.longitude]);
 
   return (
     <>
@@ -118,12 +136,12 @@ const DeviceMap = () => {
             Retour au tableau de bord
           </Button>
           <Typography variant="h5" sx={{ mb: 2 }}>
-            {device.name} - Historique des positions
+            {device.name} - Historique des positions ({locations.length} points)
           </Typography>
           <Box sx={{ height: '600px', width: '100%', position: 'relative' }}>
             <MapContainer
               center={center}
-              zoom={13}
+              zoom={14}
               style={{ height: '100%', width: '100%' }}
               scrollWheelZoom={true}
             >
@@ -138,13 +156,23 @@ const DeviceMap = () => {
                 >
                   <Popup>
                     <div>
+                      <strong>Point {index + 1}/{locations.length}</strong><br />
                       <strong>Date:</strong> {new Date(location.timestamp).toLocaleString()}<br />
-                      <strong>Latitude:</strong> {location.latitude.toFixed(6)}<br />
-                      <strong>Longitude:</strong> {location.longitude.toFixed(6)}
+                      <strong>Vitesse:</strong> {location.speed} km/h<br />
+                      <strong>Altitude:</strong> {location.altitude} m<br />
+                      <strong>Cap:</strong> {location.heading}°<br />
+                      <strong>Batterie:</strong> {location.batteryLevel}%<br />
+                      <strong>Position:</strong> [{location.latitude}, {location.longitude}]
                     </div>
                   </Popup>
                 </Marker>
               ))}
+              <Polyline
+                positions={polylinePositions}
+                color="blue"
+                weight={3}
+                opacity={0.7}
+              />
             </MapContainer>
           </Box>
         </Box>
