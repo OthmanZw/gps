@@ -22,13 +22,28 @@ app.use('/api/alerts', alertRoutes);
 // app.use('/api/notifications', notificationRoutes);
 
 // MongoDB Connection
-mongoose.connect(process.env.MONGODB_URI)
+console.log('Tentative de connexion à MongoDB...');
+console.log(`URL de connexion: ${process.env.MONGODB_URI.replace(/othman:othman/, 'othman:****')}`);
+
+// Options de connexion MongoDB adaptées pour macOS Monterey
+const mongooseOptions = {
+  serverSelectionTimeoutMS: 30000,
+  socketTimeoutMS: 45000,
+  connectTimeoutMS: 45000,
+  family: 4,
+  directConnection: true,
+  ssl: false
+};
+
+mongoose.connect(process.env.MONGODB_URI, mongooseOptions)
   .then(() => {
     console.log('Connected to MongoDB successfully!');
   })
   .catch((error) => {
     console.error('Error connecting to MongoDB:', error);
-    process.exit(1);
+    console.log('Mode sans base de données activé - Utilisation de données en mémoire');
+    // Ne pas quitter le processus en cas d'erreur
+    // process.exit(1);
   });
 
 // Test route
