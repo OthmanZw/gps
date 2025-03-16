@@ -9,18 +9,21 @@ const authController = require('../controllers/authController');
 // Register route
 router.post('/register', async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { username, email, password, firstName, lastName } = req.body;
         
         // Vérifier si l'utilisateur existe déjà
-        const existingUser = await User.findOne({ email });
+        const existingUser = await User.findOne({ $or: [{ email }, { username }] });
         if (existingUser) {
-            return res.status(400).json({ message: 'Cet email est déjà utilisé' });
+            return res.status(400).json({ message: 'Cet email ou nom d\'utilisateur est déjà utilisé' });
         }
 
         // Créer un nouvel utilisateur
         const user = new User({
+            username,
             email,
-            password: await bcrypt.hash(password, 10)
+            password, // Le mot de passe sera haché automatiquement par le hook pre-save
+            firstName,
+            lastName
         });
 
         await user.save();
@@ -32,7 +35,16 @@ router.post('/register', async (req, res) => {
             { expiresIn: '7d' }
         );
 
-        res.status(201).json({ token });
+        res.status(201).json({ 
+            token,
+            user: {
+                id: user._id,
+                username: user.username,
+                email: user.email,
+                firstName: user.firstName,
+                lastName: user.lastName
+            }
+        });
     } catch (error) {
         console.error('Erreur lors de l\'inscription:', error);
         res.status(500).json({ message: 'Erreur lors de l\'inscription' });
@@ -63,7 +75,17 @@ router.post('/login', async (req, res) => {
             { expiresIn: '7d' }
         );
 
-        res.json({ token });
+        res.json({ 
+            token,
+            user: {
+                id: user._id,
+                username: user.username,
+                email: user.email,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                role: user.role
+            }
+        });
     } catch (error) {
         console.error('Erreur lors de la connexion:', error);
         res.status(500).json({ message: 'Erreur lors de la connexion' });
@@ -77,7 +99,16 @@ router.get('/me', auth, async (req, res) => {
         if (!user) {
             return res.status(404).json({ message: 'Utilisateur non trouvé' });
         }
-        res.json(user);
+        res.json({
+            user: {
+                id: user._id,
+                username: user.username,
+                email: user.email,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                role: user.role
+            }
+        });
     } catch (error) {
         console.error('Erreur lors de la récupération de l\'utilisateur:', error);
         res.status(500).json({ message: 'Erreur lors de la récupération de l\'utilisateur' });
