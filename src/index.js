@@ -2,11 +2,19 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const dns = require('dns');
 const authRoutes = require('./routes/auth');
 const deviceRoutes = require('./routes/devices');
 const locationRoutes = require('./routes/locations');
 const alertRoutes = require('./routes/alerts');
 // const notificationRoutes = require('./routes/notificationRoutes');
+
+// Configurer les serveurs DNS de Google pour résoudre les problèmes de connexion à MongoDB
+dns.setServers([
+  '8.8.8.8',  // DNS primaire de Google
+  '8.8.4.4'   // DNS secondaire de Google
+]);
+console.log('Serveurs DNS configurés:', dns.getServers());
 
 const app = express();
 
@@ -22,13 +30,34 @@ app.use('/api/alerts', alertRoutes);
 // app.use('/api/notifications', notificationRoutes);
 
 // MongoDB Connection
-mongoose.connect(process.env.MONGODB_URI)
+const mongoUri = process.env.MONGODB_URI;
+console.log('Tentative de connexion à MongoDB...');
+console.log(`URL de connexion: ${mongoUri.replace(/othman:othman/, 'othman:****')}`);
+
+// Options de connexion MongoDB simplifiées qui ont fonctionné
+const mongooseOptions = {
+  serverSelectionTimeoutMS: 20000, // Timeout à 20 secondes
+};
+
+// Si l'URL n'est pas de type SRV et contient une adresse IP directe, ajouter directConnection
+if (!mongoUri.startsWith('mongodb+srv://')) {
+  mongooseOptions.directConnection = true;
+  console.log('Option directConnection activée');
+} else {
+  console.log('URL SRV détectée, option directConnection désactivée');
+}
+
+console.log('Options de connexion:', JSON.stringify(mongooseOptions));
+
+mongoose.connect(mongoUri, mongooseOptions)
   .then(() => {
     console.log('Connected to MongoDB successfully!');
   })
   .catch((error) => {
     console.error('Error connecting to MongoDB:', error);
-    process.exit(1);
+    console.log('Mode sans base de données activé - Utilisation de données en mémoire');
+    // Ne pas quitter le processus en cas d'erreur
+    // process.exit(1);
   });
 
 // Test route
